@@ -403,6 +403,7 @@ function closeDetailModal() {
     elements.detailModal.classList.remove('active');
     document.body.style.overflow = '';
     state.currentContent = null;
+    exitModalMode();
 }
 
 function renderSeasons(seasons) {
@@ -1253,6 +1254,17 @@ function updateModalFocusableItems() {
             });
         });
     }
+
+    // Add similar titles
+    const similarItems = elements.similarGrid.querySelectorAll('.movie-card');
+    similarItems.forEach((item, i) => {
+        const title = item.querySelector('.card-title')?.textContent || 'Related Title';
+        tvRemoteState.modalFocusableItems.push({
+            type: 'similar',
+            element: item,
+            label: `Related: ${title}`
+        });
+    });
 }
 
 function navigateModal(direction) {
@@ -1311,7 +1323,7 @@ function selectModalItem() {
         setTimeout(() => {
             updateModalFocusableItems();
         }, 500);
-    } else if (currentItem.type === 'episode') {
+    } else if (currentItem.type === 'episode' || currentItem.type === 'similar') {
         currentItem.element.click();
     }
 }
