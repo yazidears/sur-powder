@@ -1126,6 +1126,9 @@ button {
 
     .detail-content {
         width: 95%;
+        /* Ensure there's enough space to scroll to the bottom on mobile */
+        max-height: 85vh;
+        padding-bottom: 40px;
     }
 
     .similar-grid {
@@ -1170,6 +1173,11 @@ button {
 
     .row-title {
         font-size: 1.1rem;
+    }
+
+    /* Fix spacing between featured banner and content below on phones */
+    .content-rows {
+        margin-top: -60px;
     }
 
     .api-key-content {
