@@ -1102,7 +1102,7 @@ function showTVNavigationHint() {
                     <span class="tv-hint-desc">Search</span>
                 </div>
             </div>
-            <p class="tv-hint-footer">Press any key to continue</p>
+            <p class="tv-hint-footer">Click anywhere or press any key to continue</p>
         </div>
     `;
     document.body.appendChild(hint);
@@ -1110,13 +1110,15 @@ function showTVNavigationHint() {
     // Animate in
     setTimeout(() => hint.classList.add('show'), 10);
 
-    // Remove on any key press
+    // Remove on any key press or click
     const removeHint = () => {
         hint.classList.remove('show');
         setTimeout(() => hint.remove(), 300);
         document.removeEventListener('keydown', removeHint);
+        hint.removeEventListener('click', removeHint);
     };
     document.addEventListener('keydown', removeHint);
+    hint.addEventListener('click', removeHint);
 
     // Auto-remove after 8 seconds
     setTimeout(removeHint, 8000);

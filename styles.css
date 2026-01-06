@@ -1011,7 +1011,7 @@ button {
 /* Detail Modal */
 .detail-content {
     width: 900px;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .detail-backdrop {
