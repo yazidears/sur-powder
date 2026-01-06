@@ -287,7 +287,7 @@ function createMovieCard(item, type) {
     return `
         <div class="movie-card" data-id="${item.id}" data-type="${type}">
             <img src="${posterUrl}" alt="${title}" class="card-poster" loading="lazy" 
-                 onerror="this.src='https://via.placeholder.com/342x513/1a1a1a/808080?text=No+Image'">
+                 onerror="handlePosterError(this)">
             ${type === 'tv' ? '<span class="card-type-badge">Series</span>' : ''}
             <div class="card-info">
                 <h3 class="card-title">${title}</h3>
@@ -642,7 +642,7 @@ async function performSearch(query) {
         // Filter to only movies and TV shows
         const filtered = results.results.filter(item =>
             item.media_type === 'movie' || item.media_type === 'tv'
-        );
+        ).sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
 
         if (filtered.length === 0) {
             elements.searchGrid.innerHTML = '<p style="color: var(--text-muted); grid-column: 1/-1; text-align: center;">No results found</p>';
@@ -788,5 +788,29 @@ function handleKeyboard(e) {
         } else if (elements.searchContainer.classList.contains('active')) {
             toggleSearch();
         }
+    }
+}
+
+function handlePosterError(img) {
+    const maxRetries = 3;
+    let retries = parseInt(img.dataset.retries || '0');
+
+    if (retries < maxRetries) {
+        retries++;
+        img.dataset.retries = retries;
+
+        // Add a small delay before retrying
+        setTimeout(() => {
+            const currentSrc = img.src;
+            const url = new URL(currentSrc);
+            // Add or update retry timestamp to bypass potential browser cache of failed request
+            url.searchParams.set('retry', Date.now());
+            img.src = url.toString();
+        }, 1000 * retries); // 1s, 2s, 3s delay
+    } else {
+        // Fallback to placeholder after all retries fail
+        img.onerror = null; // Prevent infinite loop
+        img.parentElement.classList.add('image-error'); // Add class for potential styling
+        img.src = 'https://via.placeholder.com/342x513/1a1a1a/808080?text=No+Image';
     }
 }
