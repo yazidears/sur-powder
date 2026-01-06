@@ -76,6 +76,9 @@ async function init() {
     loadFromStorage();
     setupEventListeners();
     await loadContent();
+
+    // Initialize TV remote navigation
+    initTVRemoteNavigation();
 }
 
 function loadFromStorage() {
@@ -271,9 +274,35 @@ function renderContentRow(containerId, items, type) {
 
     container.innerHTML = items.map(item => createMovieCard(item, type)).join('');
 
-    // Add click listeners
+    // Add click listeners with event delegation
     container.querySelectorAll('.movie-card').forEach((card, index) => {
-        card.addEventListener('click', () => showDetailModal({ ...items[index], media_type: type }));
+        const item = { ...items[index], media_type: type };
+
+        // Play button click
+        const playBtn = card.querySelector('.play-btn');
+        if (playBtn) {
+            playBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (type === 'tv') {
+                    // For TV shows, go to detail modal first to select episode
+                    showDetailModal(item);
+                } else {
+                    playContent(item);
+                }
+            });
+        }
+
+        // Info button click
+        const infoBtn = card.querySelector('.info-btn');
+        if (infoBtn) {
+            infoBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showDetailModal(item);
+            });
+        }
+
+        // Card click (fallback to info)
+        card.addEventListener('click', () => showDetailModal(item));
     });
 }
 
@@ -286,13 +315,31 @@ function createMovieCard(item, type) {
 
     return `
         <div class="movie-card" data-id="${item.id}" data-type="${type}">
-            <img src="${posterUrl}" alt="${title}" class="card-poster" loading="lazy" 
-                 onerror="handlePosterError(this)">
-            ${type === 'tv' ? '<span class="card-type-badge">Series</span>' : ''}
+            <div class="card-poster-wrapper">
+                <img src="${posterUrl}" alt="${title}" class="card-poster" loading="lazy" 
+                     onerror="handlePosterError(this)">
+                ${type === 'tv' ? '<span class="card-type-badge">Series</span>' : ''}
+                
+                <!-- Hover Action Buttons -->
+                <div class="card-hover-actions">
+                    <button class="card-action-btn play-btn" title="Play" data-action="play">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                    </button>
+                    <button class="card-action-btn info-btn" title="More Info" data-action="info">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
             <div class="card-info">
                 <h3 class="card-title">${title}</h3>
                 <div class="card-meta">
-                    <span class="rating">★ ${rating}</span>
+                    <span class="rating">${rating}</span>
                     <span>${year}</span>
                 </div>
             </div>
@@ -532,7 +579,8 @@ function updateMyListRow() {
     container.innerHTML = state.myList.map(item => createMovieCard(item, item.media_type)).join('');
 
     container.querySelectorAll('.movie-card').forEach((card, index) => {
-        card.addEventListener('click', () => showDetailModal(state.myList[index]));
+        const item = state.myList[index];
+        attachCardEventListeners(card, item);
     });
 }
 
@@ -597,15 +645,41 @@ function updateContinueWatchingRow() {
     container.innerHTML = itemsWithProgress.map(item => createMovieCard(item, item.media_type)).join('');
 
     container.querySelectorAll('.movie-card').forEach((card, index) => {
-        card.addEventListener('click', () => {
-            const item = itemsWithProgress[index];
-            if (item.media_type === 'tv' && item.season && item.episode) {
+        const item = itemsWithProgress[index];
+        attachCardEventListeners(card, item, true); // true = is continue watching
+    });
+}
+
+// Helper function to attach event listeners to cards
+function attachCardEventListeners(card, item, isContinueWatching = false) {
+    const type = item.media_type || 'movie';
+
+    // Play button click
+    const playBtn = card.querySelector('.play-btn');
+    if (playBtn) {
+        playBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (isContinueWatching && type === 'tv' && item.season && item.episode) {
                 playContent(item, item.season, item.episode);
-            } else {
+            } else if (type === 'tv') {
                 showDetailModal(item);
+            } else {
+                playContent(item);
             }
         });
-    });
+    }
+
+    // Info button click
+    const infoBtn = card.querySelector('.info-btn');
+    if (infoBtn) {
+        infoBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showDetailModal(item);
+        });
+    }
+
+    // Card click
+    card.addEventListener('click', () => showDetailModal(item));
 }
 
 // ========================================
@@ -779,15 +853,677 @@ function handleScrollButton(e) {
     }
 }
 
+// TV Remote State
+const tvRemoteState = {
+    currentRowIndex: 0,
+    currentCardIndex: 0,
+    isNavigating: false,
+    focusMode: false,
+    navMode: false,
+    navIndex: 0,
+    modalMode: false,
+    modalFocusIndex: 0,
+    modalFocusableItems: []
+};
+
 function handleKeyboard(e) {
-    if (e.key === 'Escape') {
-        if (elements.playerModal.classList.contains('active')) {
-            closePlayerModal();
-        } else if (elements.detailModal.classList.contains('active')) {
-            closeDetailModal();
-        } else if (elements.searchContainer.classList.contains('active')) {
+    // Don't handle if typing in search
+    if (document.activeElement === elements.searchInput) {
+        if (e.key === 'Escape') {
+            elements.searchInput.blur();
             toggleSearch();
         }
+        return;
+    }
+
+    // Handle player modal - only Escape works
+    if (elements.playerModal.classList.contains('active')) {
+        if (e.key === 'Escape' || e.key === 'Backspace') {
+            e.preventDefault();
+            closePlayerModal();
+        }
+        return;
+    }
+
+    // Handle detail modal navigation
+    if (elements.detailModal.classList.contains('active')) {
+        handleModalKeyboard(e);
+        return;
+    }
+
+    // ========================================
+    // QUICK PAGE NAVIGATION (Number Keys 1-4)
+    // ========================================
+    // 1 = Home, 2 = Movies, 3 = TV Shows, 4 = My List
+    if (e.key === '1' || e.key === 'Digit1') {
+        e.preventDefault();
+        navigateToPage('home');
+        return;
+    } else if (e.key === '2' || e.key === 'Digit2') {
+        e.preventDefault();
+        navigateToPage('movies');
+        return;
+    } else if (e.key === '3' || e.key === 'Digit3') {
+        e.preventDefault();
+        navigateToPage('tvshows');
+        return;
+    } else if (e.key === '4' || e.key === 'Digit4') {
+        e.preventDefault();
+        navigateToPage('mylist');
+        return;
+    }
+
+    // ========================================
+    // TV REMOTE COLOR BUTTONS
+    // ========================================
+    // Red = Home, Green = Movies, Yellow = TV Shows, Blue = My List
+    if (e.key === 'ColorF0Red' || e.key === 'F1') {
+        e.preventDefault();
+        navigateToPage('home');
+        return;
+    } else if (e.key === 'ColorF1Green' || e.key === 'F2') {
+        e.preventDefault();
+        navigateToPage('movies');
+        return;
+    } else if (e.key === 'ColorF2Yellow' || e.key === 'F3') {
+        e.preventDefault();
+        navigateToPage('tvshows');
+        return;
+    } else if (e.key === 'ColorF3Blue' || e.key === 'F4') {
+        e.preventDefault();
+        navigateToPage('mylist');
+        return;
+    }
+
+    // ========================================
+    // SEARCH SHORTCUT (S key or F5)
+    // ========================================
+    if (e.key === 's' || e.key === 'S' || e.key === 'F5') {
+        e.preventDefault();
+        toggleSearch();
+        elements.searchInput.focus();
+        return;
+    }
+
+    // Handle main navigation
+    if (e.key === 'Escape') {
+        if (elements.searchContainer.classList.contains('active')) {
+            toggleSearch();
+        } else if (tvRemoteState.navMode) {
+            exitNavMode();
+        } else if (tvRemoteState.focusMode) {
+            exitFocusMode();
+        }
+    } else if (e.key === 'Tab') {
+        // Tab to enter/cycle nav mode
+        e.preventDefault();
+        if (!tvRemoteState.navMode) {
+            enterNavMode();
+        } else {
+            // Cycle through nav items
+            tvRemoteState.navIndex = (tvRemoteState.navIndex + 1) % 5; // Home, Movies, TV Shows, My List, Search
+            updateNavFocus();
+        }
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        // If at top of page or first row, enter nav mode
+        if (tvRemoteState.currentRowIndex === 0 && !tvRemoteState.focusMode && !tvRemoteState.navMode && window.scrollY < 100) {
+            enterNavMode();
+            return;
+        }
+        if (tvRemoteState.navMode) {
+            // Exit nav mode and go to content
+            exitNavMode();
+        } else if (tvRemoteState.focusMode) {
+            exitFocusMode();
+            navigateContentRows('up');
+        } else {
+            navigateContentRows('up');
+        }
+    } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (tvRemoteState.navMode) {
+            exitNavMode();
+            tvRemoteState.currentRowIndex = 0;
+            // Auto-enter focus mode to start browsing cards
+            enterFocusModeOnFirstRow();
+        } else if (tvRemoteState.focusMode) {
+            exitFocusMode();
+            navigateContentRows('down');
+        } else {
+            navigateContentRows('down');
+        }
+    } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (tvRemoteState.navMode) {
+            tvRemoteState.navIndex = Math.max(0, tvRemoteState.navIndex - 1);
+            updateNavFocus();
+        } else if (tvRemoteState.focusMode) {
+            navigateWithinRow('left');
+        } else {
+            enterFocusModeAndNavigate('left');
+        }
+    } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (tvRemoteState.navMode) {
+            tvRemoteState.navIndex = Math.min(4, tvRemoteState.navIndex + 1);
+            updateNavFocus();
+        } else if (tvRemoteState.focusMode) {
+            navigateWithinRow('right');
+        } else {
+            enterFocusModeAndNavigate('right');
+        }
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (tvRemoteState.navMode) {
+            selectNavItem();
+        } else if (tvRemoteState.focusMode) {
+            selectFocusedCard();
+        } else {
+            // If not in any mode, play hero content
+            if (state.heroContent && elements.hero.style.display !== 'none') {
+                playContent(state.heroContent);
+            }
+        }
+    }
+}
+
+// Navigate to a specific page section
+function navigateToPage(section) {
+    const navLink = document.querySelector(`.nav-link[data-section="${section}"]`);
+    if (navLink) {
+        navLink.click();
+        showRemoteIndicator(`📺 ${section.charAt(0).toUpperCase() + section.slice(1)}`);
+
+        // Reset navigation state
+        tvRemoteState.currentRowIndex = 0;
+        tvRemoteState.currentCardIndex = 0;
+        exitFocusMode();
+        exitNavMode();
+    }
+}
+
+// Enter focus mode on the first visible row
+function enterFocusModeOnFirstRow() {
+    const visibleRows = Array.from(document.querySelectorAll('.content-row'))
+        .filter(row => row.style.display !== 'none' && row.offsetHeight > 0);
+
+    if (visibleRows.length === 0) return;
+
+    tvRemoteState.currentRowIndex = 0;
+    tvRemoteState.focusMode = true;
+    tvRemoteState.currentCardIndex = 0;
+
+    const firstRow = visibleRows[0];
+    scrollToRow(firstRow);
+    updateFocusedCard(firstRow);
+}
+
+// Initialize TV remote navigation
+function initTVRemoteNavigation() {
+    // Show navigation hint on first visit
+    const hasSeenHint = localStorage.getItem('powder_tv_hint_seen');
+
+    if (!hasSeenHint) {
+        setTimeout(() => {
+            showTVNavigationHint();
+            localStorage.setItem('powder_tv_hint_seen', 'true');
+        }, 2000);
+    }
+
+    // Show a brief indicator that remote navigation is available
+    setTimeout(() => {
+        showRemoteIndicator('📺 Use arrow keys to navigate');
+    }, 1500);
+}
+
+// Show TV navigation hint overlay
+function showTVNavigationHint() {
+    const hint = document.createElement('div');
+    hint.className = 'tv-navigation-hint';
+    hint.innerHTML = `
+        <div class="tv-hint-content">
+            <h2>📺 Remote Navigation</h2>
+            <div class="tv-hint-grid">
+                <div class="tv-hint-item">
+                    <span class="tv-hint-key">↑↓←→</span>
+                    <span class="tv-hint-desc">Navigate</span>
+                </div>
+                <div class="tv-hint-item">
+                    <span class="tv-hint-key">Enter</span>
+                    <span class="tv-hint-desc">Select</span>
+                </div>
+                <div class="tv-hint-item">
+                    <span class="tv-hint-key">1-4</span>
+                    <span class="tv-hint-desc">Pages</span>
+                </div>
+                <div class="tv-hint-item">
+                    <span class="tv-hint-key">S</span>
+                    <span class="tv-hint-desc">Search</span>
+                </div>
+            </div>
+            <p class="tv-hint-footer">Press any key to continue</p>
+        </div>
+    `;
+    document.body.appendChild(hint);
+
+    // Animate in
+    setTimeout(() => hint.classList.add('show'), 10);
+
+    // Remove on any key press
+    const removeHint = () => {
+        hint.classList.remove('show');
+        setTimeout(() => hint.remove(), 300);
+        document.removeEventListener('keydown', removeHint);
+    };
+    document.addEventListener('keydown', removeHint);
+
+    // Auto-remove after 8 seconds
+    setTimeout(removeHint, 8000);
+}
+
+// Nav mode functions
+function enterNavMode() {
+    tvRemoteState.navMode = true;
+    tvRemoteState.focusMode = false;
+    clearCardFocus();
+
+    // Find currently active nav item
+    const navItems = Array.from(elements.navLinks);
+    const activeIndex = navItems.findIndex(link => link.classList.contains('active'));
+    tvRemoteState.navIndex = activeIndex >= 0 ? activeIndex : 0;
+
+    updateNavFocus();
+    showRemoteIndicator('Navigation: Use ←→ to browse, Enter to select');
+}
+
+function exitNavMode() {
+    tvRemoteState.navMode = false;
+    clearNavFocus();
+}
+
+function updateNavFocus() {
+    clearNavFocus();
+
+    // Nav items: Home(0), Movies(1), TV Shows(2), My List(3), Search(4)
+    const navItems = Array.from(elements.navLinks);
+
+    if (tvRemoteState.navIndex < navItems.length) {
+        navItems[tvRemoteState.navIndex].classList.add('tv-nav-focused');
+        showRemoteIndicator(navItems[tvRemoteState.navIndex].textContent);
+    } else if (tvRemoteState.navIndex === 4) {
+        // Focus search
+        elements.searchToggle.classList.add('tv-nav-focused');
+        showRemoteIndicator('Search');
+    }
+}
+
+function clearNavFocus() {
+    elements.navLinks.forEach(link => link.classList.remove('tv-nav-focused'));
+    elements.searchToggle.classList.remove('tv-nav-focused');
+}
+
+function selectNavItem() {
+    const navItems = Array.from(elements.navLinks);
+
+    if (tvRemoteState.navIndex < navItems.length) {
+        navItems[tvRemoteState.navIndex].click();
+        exitNavMode();
+    } else if (tvRemoteState.navIndex === 4) {
+        // Activate search
+        toggleSearch();
+        elements.searchInput.focus();
+        exitNavMode();
+    }
+}
+
+// Modal keyboard handling
+function handleModalKeyboard(e) {
+    if (e.key === 'Escape' || e.key === 'Backspace') {
+        e.preventDefault();
+        closeDetailModal();
+        exitModalMode();
+        return;
+    }
+
+    // Initialize modal navigation on first key press
+    if (!tvRemoteState.modalMode) {
+        initModalNavigation();
+    }
+
+    if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        navigateModal('up');
+    } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        navigateModal('down');
+    } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        navigateModal('left');
+    } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        navigateModal('right');
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        selectModalItem();
+    }
+}
+
+function initModalNavigation() {
+    tvRemoteState.modalMode = true;
+    tvRemoteState.modalFocusIndex = 0;
+
+    // Build list of focusable items in modal
+    updateModalFocusableItems();
+    updateModalFocus();
+}
+
+function updateModalFocusableItems() {
+    tvRemoteState.modalFocusableItems = [];
+
+    // Add play button
+    const playBtn = elements.detailPlay;
+    if (playBtn) {
+        tvRemoteState.modalFocusableItems.push({ type: 'button', element: playBtn, label: 'Play' });
+    }
+
+    // Add to list button
+    const addBtn = elements.addToList;
+    if (addBtn) {
+        tvRemoteState.modalFocusableItems.push({ type: 'button', element: addBtn, label: 'Add to List' });
+    }
+
+    // Add season selector if visible
+    const seasonSelect = elements.seasonSelect;
+    if (seasonSelect && elements.episodeSelector.style.display !== 'none') {
+        tvRemoteState.modalFocusableItems.push({ type: 'select', element: seasonSelect, label: 'Season' });
+    }
+
+    // Add episode cards if visible
+    if (elements.episodeSelector.style.display !== 'none') {
+        const episodes = elements.episodesGrid.querySelectorAll('.episode-card');
+        episodes.forEach((ep, i) => {
+            tvRemoteState.modalFocusableItems.push({
+                type: 'episode',
+                element: ep,
+                label: `Episode ${i + 1}`,
+                episodeNum: i + 1
+            });
+        });
+    }
+}
+
+function navigateModal(direction) {
+    const items = tvRemoteState.modalFocusableItems;
+    if (items.length === 0) return;
+
+    // Simple navigation through focusable items
+    if (direction === 'down' || direction === 'right') {
+        tvRemoteState.modalFocusIndex = Math.min(tvRemoteState.modalFocusIndex + 1, items.length - 1);
+    } else if (direction === 'up' || direction === 'left') {
+        tvRemoteState.modalFocusIndex = Math.max(tvRemoteState.modalFocusIndex - 1, 0);
+    }
+
+    updateModalFocus();
+
+    // Show current selection
+    const item = items[tvRemoteState.modalFocusIndex];
+    if (item) {
+        showRemoteIndicator(item.label);
+    }
+}
+
+function updateModalFocus() {
+    // Clear all modal focuses
+    document.querySelectorAll('.tv-modal-focused').forEach(el => el.classList.remove('tv-modal-focused'));
+
+    const items = tvRemoteState.modalFocusableItems;
+    if (items.length === 0) return;
+
+    const currentItem = items[tvRemoteState.modalFocusIndex];
+    if (currentItem && currentItem.element) {
+        currentItem.element.classList.add('tv-modal-focused');
+
+        // Scroll into view if needed
+        currentItem.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function selectModalItem() {
+    const items = tvRemoteState.modalFocusableItems;
+    if (items.length === 0) return;
+
+    const currentItem = items[tvRemoteState.modalFocusIndex];
+    if (!currentItem) return;
+
+    if (currentItem.type === 'button') {
+        currentItem.element.click();
+    } else if (currentItem.type === 'select') {
+        // Cycle through seasons
+        const select = currentItem.element;
+        const currentIndex = select.selectedIndex;
+        select.selectedIndex = (currentIndex + 1) % select.options.length;
+        select.dispatchEvent(new Event('change'));
+
+        // Update focusable items after season change
+        setTimeout(() => {
+            updateModalFocusableItems();
+        }, 500);
+    } else if (currentItem.type === 'episode') {
+        currentItem.element.click();
+    }
+}
+
+function exitModalMode() {
+    tvRemoteState.modalMode = false;
+    tvRemoteState.modalFocusIndex = 0;
+    tvRemoteState.modalFocusableItems = [];
+    document.querySelectorAll('.tv-modal-focused').forEach(el => el.classList.remove('tv-modal-focused'));
+}
+
+function navigateContentRows(direction) {
+    // Don't navigate if modal is open
+    if (elements.playerModal.classList.contains('active') ||
+        elements.detailModal.classList.contains('active') ||
+        elements.searchResults.style.display === 'block') {
+        return;
+    }
+
+    const visibleRows = Array.from(document.querySelectorAll('.content-row'))
+        .filter(row => row.style.display !== 'none' && row.offsetHeight > 0);
+
+    if (visibleRows.length === 0) return;
+
+    // Update current row index
+    if (direction === 'down') {
+        tvRemoteState.currentRowIndex = Math.min(tvRemoteState.currentRowIndex + 1, visibleRows.length - 1);
+    } else {
+        // Special handling for up - if at first row, go to hero
+        if (tvRemoteState.currentRowIndex === 0) {
+            scrollToHero();
+            return;
+        }
+        tvRemoteState.currentRowIndex = Math.max(tvRemoteState.currentRowIndex - 1, 0);
+    }
+
+    const targetRow = visibleRows[tvRemoteState.currentRowIndex];
+    scrollToRow(targetRow);
+}
+
+function scrollToHero() {
+    tvRemoteState.currentRowIndex = 0;
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+    showRemoteIndicator('↑ Back to Top');
+}
+
+function scrollToRow(row) {
+    if (!row) return;
+
+    tvRemoteState.isNavigating = true;
+
+    // Calculate position to center the row
+    const rowTop = row.getBoundingClientRect().top + window.scrollY;
+    const offset = window.innerHeight * 0.25; // Center-ish position
+    const scrollTo = rowTop - offset;
+
+    window.scrollTo({
+        top: scrollTo,
+        behavior: 'smooth'
+    });
+
+    // Highlight the row temporarily
+    highlightRow(row);
+
+    // Show which row we're on
+    const rowTitle = row.querySelector('.row-title')?.textContent || 'Content Row';
+    showRemoteIndicator(rowTitle);
+
+    setTimeout(() => {
+        tvRemoteState.isNavigating = false;
+    }, 600);
+}
+
+function highlightRow(row) {
+    // Remove previous highlights
+    document.querySelectorAll('.content-row').forEach(r => r.classList.remove('tv-remote-highlight'));
+
+    // Add highlight to current row
+    row.classList.add('tv-remote-highlight');
+
+    // Remove highlight after animation
+    setTimeout(() => {
+        row.classList.remove('tv-remote-highlight');
+    }, 1500);
+}
+
+function showRemoteIndicator(text) {
+    // Remove existing indicator
+    const existing = document.getElementById('tvRemoteIndicator');
+    if (existing) {
+        existing.remove();
+    }
+
+    // Create new indicator
+    const indicator = document.createElement('div');
+    indicator.id = 'tvRemoteIndicator';
+    indicator.className = 'tv-remote-indicator';
+    indicator.textContent = text;
+    document.body.appendChild(indicator);
+
+    // Trigger animation
+    setTimeout(() => {
+        indicator.classList.add('show');
+    }, 10);
+
+    // Remove after animation
+    setTimeout(() => {
+        indicator.classList.remove('show');
+        setTimeout(() => {
+            indicator.remove();
+        }, 300);
+    }, 2000);
+}
+
+function enterFocusModeAndNavigate(direction) {
+    const visibleRows = Array.from(document.querySelectorAll('.content-row'))
+        .filter(row => row.style.display !== 'none' && row.offsetHeight > 0);
+
+    if (visibleRows.length === 0) return;
+
+    const currentRow = visibleRows[tvRemoteState.currentRowIndex];
+    if (!currentRow) return;
+
+    tvRemoteState.focusMode = true;
+    tvRemoteState.currentCardIndex = 0;
+
+    updateFocusedCard(currentRow);
+    navigateWithinRow(direction);
+}
+
+function exitFocusMode() {
+    tvRemoteState.focusMode = false;
+    clearCardFocus();
+}
+
+function navigateWithinRow(direction) {
+    const visibleRows = Array.from(document.querySelectorAll('.content-row'))
+        .filter(row => row.style.display !== 'none' && row.offsetHeight > 0);
+
+    const currentRow = visibleRows[tvRemoteState.currentRowIndex];
+    if (!currentRow) return;
+
+    const cards = Array.from(currentRow.querySelectorAll('.movie-card'));
+    if (cards.length === 0) return;
+
+    if (direction === 'right') {
+        tvRemoteState.currentCardIndex = Math.min(tvRemoteState.currentCardIndex + 1, cards.length - 1);
+    } else {
+        tvRemoteState.currentCardIndex = Math.max(tvRemoteState.currentCardIndex - 1, 0);
+    }
+
+    updateFocusedCard(currentRow);
+    scrollCardIntoView(cards[tvRemoteState.currentCardIndex], currentRow);
+}
+
+function updateFocusedCard(row) {
+    const cards = Array.from(row.querySelectorAll('.movie-card'));
+
+    // Clear all focuses
+    cards.forEach(card => card.classList.remove('tv-focused'));
+
+    // Focus current card
+    if (cards[tvRemoteState.currentCardIndex]) {
+        cards[tvRemoteState.currentCardIndex].classList.add('tv-focused');
+    }
+}
+
+function clearCardFocus() {
+    document.querySelectorAll('.movie-card').forEach(card => {
+        card.classList.remove('tv-focused');
+    });
+}
+
+function scrollCardIntoView(card, row) {
+    if (!card) return;
+
+    const rowContent = row.querySelector('.row-content');
+    if (!rowContent) return;
+
+    const cardRect = card.getBoundingClientRect();
+    const rowRect = rowContent.getBoundingClientRect();
+
+    // Calculate if card is out of view
+    const cardLeft = card.offsetLeft;
+    const cardWidth = card.offsetWidth;
+    const scrollLeft = rowContent.scrollLeft;
+    const rowWidth = rowContent.clientWidth;
+
+    // Scroll to keep card centered
+    const targetScroll = cardLeft - (rowWidth / 2) + (cardWidth / 2);
+
+    rowContent.scrollTo({
+        left: targetScroll,
+        behavior: 'smooth'
+    });
+}
+
+function selectFocusedCard() {
+    const visibleRows = Array.from(document.querySelectorAll('.content-row'))
+        .filter(row => row.style.display !== 'none' && row.offsetHeight > 0);
+
+    const currentRow = visibleRows[tvRemoteState.currentRowIndex];
+    if (!currentRow) return;
+
+    const cards = Array.from(currentRow.querySelectorAll('.movie-card'));
+    const focusedCard = cards[tvRemoteState.currentCardIndex];
+
+    if (focusedCard) {
+        // Trigger click on the focused card
+        focusedCard.click();
+        exitFocusMode();
     }
 }
 

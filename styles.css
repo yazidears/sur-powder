@@ -138,7 +138,7 @@ button {
     gap: 10px;
     font-size: 1.5rem;
     font-weight: 800;
-    color: var(--accent-primary);
+    color: #ffffff;
     letter-spacing: -0.03em;
 }
 
@@ -156,31 +156,63 @@ button {
 
 .nav {
     display: flex;
-    gap: 24px;
+    gap: 28px;
 }
 
 .nav-link {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 500;
     color: var(--text-secondary);
-    transition: color var(--transition-fast);
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     position: relative;
+    padding: 8px 4px;
 }
 
-.nav-link:hover,
-.nav-link.active {
-    color: var(--text-primary);
-}
-
-.nav-link.active::after {
+.nav-link::before {
     content: '';
     position: absolute;
-    bottom: -4px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--accent-primary);
-    border-radius: 1px;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-primary), #ff6b35);
+    border-radius: 2px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: translateX(-50%);
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.nav-link:hover {
+    color: var(--text-primary);
+    transform: translateY(-2px);
+}
+
+.nav-link:hover::before {
+    width: 100%;
+}
+
+.nav-link.active {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.nav-link.active::before {
+    width: 100%;
+    animation: navGlow 2s ease-in-out infinite;
+}
+
+@keyframes navGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px var(--accent-glow);
+        opacity: 1;
+    }
+
+    50% {
+        box-shadow: 0 0 20px var(--accent-glow), 0 0 30px var(--accent-glow);
+        opacity: 0.8;
+    }
 }
 
 .header-right {
@@ -360,8 +392,38 @@ button {
 
 .hero-actions {
     display: flex;
-    gap: 12px;
-    margin-top: 8px;
+    gap: 14px;
+    margin-top: 12px;
+    animation: heroFadeUp 0.8s ease-out 0.6s both;
+}
+
+/* Hero Entrance Animations */
+@keyframes heroFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.hero-badge {
+    animation: heroFadeUp 0.6s ease-out 0.1s both;
+}
+
+.hero-title {
+    animation: heroFadeUp 0.7s ease-out 0.2s both;
+}
+
+.hero-meta {
+    animation: heroFadeUp 0.7s ease-out 0.3s both;
+}
+
+.hero-description {
+    animation: heroFadeUp 0.7s ease-out 0.4s both;
 }
 
 /* Buttons */
@@ -483,14 +545,16 @@ button {
 .row-wrapper {
     position: relative;
     padding: 0 4%;
+    overflow: visible;
 }
 
 .row-content {
     display: flex;
     gap: var(--card-gap);
     overflow-x: auto;
+    overflow-y: visible;
     scroll-behavior: smooth;
-    padding: 10px 0 20px;
+    padding: 40px 0 60px;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -537,24 +601,54 @@ button {
 }
 
 /* ========================================
-   MOVIE CARDS
+   MOVIE CARDS - Enhanced Netflix-Style
    ======================================== */
 .movie-card {
     flex-shrink: 0;
     width: var(--card-width);
     position: relative;
-    border-radius: 6px;
-    overflow: hidden;
+    border-radius: 8px;
+    overflow: visible;
     background: var(--bg-card);
     cursor: pointer;
-    transition: all var(--transition-normal);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     transform-origin: center;
 }
 
+.movie-card::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent-primary), #ff6b35, var(--accent-primary));
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.4s ease;
+}
+
 .movie-card:hover {
-    transform: scale(1.08);
-    z-index: 20;
-    box-shadow: var(--shadow-card);
+    transform: scale(1.15) translateY(-10px);
+    z-index: 50;
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.6),
+        0 0 60px rgba(229, 9, 20, 0.3);
+}
+
+.movie-card:hover::before {
+    opacity: 1;
+    animation: borderGlow 2s ease-in-out infinite;
+}
+
+@keyframes borderGlow {
+
+    0%,
+    100% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
 .movie-card:first-child:hover {
@@ -565,11 +659,22 @@ button {
     transform-origin: right center;
 }
 
+.card-poster-wrapper {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
 .card-poster {
     width: 100%;
     aspect-ratio: 2/3;
     object-fit: cover;
-    transition: filter var(--transition-normal);
+    transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.movie-card:hover .card-poster {
+    transform: scale(1.05);
+    filter: brightness(0.6);
 }
 
 .card-poster.loading {
@@ -588,16 +693,83 @@ button {
     }
 }
 
+/* Card Hover Actions - Netflix Style */
+.card-hover-actions {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    display: flex;
+    gap: 12px;
+    opacity: 0;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 10;
+}
+
+.movie-card:hover .card-hover-actions {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.card-action-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.card-action-btn svg {
+    width: 22px;
+    height: 22px;
+    transition: transform 0.25s ease;
+}
+
+.card-action-btn.play-btn {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.3);
+}
+
+.card-action-btn.play-btn:hover {
+    transform: scale(1.15);
+    box-shadow: 0 6px 30px rgba(255, 255, 255, 0.5);
+}
+
+.card-action-btn.play-btn:hover svg {
+    transform: scale(1.1);
+}
+
+.card-action-btn.info-btn {
+    background: rgba(109, 109, 110, 0.8);
+    color: var(--text-primary);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+.card-action-btn.info-btn:hover {
+    transform: scale(1.15);
+    background: rgba(109, 109, 110, 0.95);
+    border-color: var(--text-primary);
+}
+
+/* Card Info Overlay */
 .card-info {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 60px 12px 12px;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.95));
+    padding: 80px 14px 14px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.8) 60%, transparent 100%);
     opacity: 0;
-    transform: translateY(10px);
-    transition: all var(--transition-normal);
+    transform: translateY(20px);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    border-radius: 0 0 8px 8px;
 }
 
 .movie-card:hover .card-info {
@@ -606,37 +778,49 @@ button {
 }
 
 .card-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 6px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 8px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .card-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     font-size: 0.8rem;
     color: var(--text-secondary);
 }
 
 .card-meta .rating {
     color: var(--rating-color);
-    font-weight: 600;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.card-meta .rating::before {
+    content: '★';
+    font-size: 0.7rem;
 }
 
 .card-type-badge {
     position: absolute;
-    top: 8px;
-    left: 8px;
-    padding: 4px 8px;
-    background: var(--accent-primary);
+    top: 10px;
+    left: 10px;
+    padding: 5px 10px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     border-radius: 4px;
     font-size: 0.7rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 10px rgba(229, 9, 20, 0.4);
+    z-index: 5;
 }
 
 .card-progress {
@@ -644,14 +828,16 @@ button {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.3);
+    height: 5px;
+    background: rgba(255, 255, 255, 0.2);
+    z-index: 15;
 }
 
 .card-progress-bar {
     height: 100%;
-    background: var(--accent-primary);
+    background: linear-gradient(90deg, var(--accent-primary), #ff6b35);
     transition: width var(--transition-normal);
+    box-shadow: 0 0 10px var(--accent-glow);
 }
 
 /* ========================================
@@ -1106,6 +1292,192 @@ button {
 }
 
 /* ========================================
+   TV REMOTE CONTROLS
+   ======================================== */
+
+/* Row highlight when navigating with remote */
+.tv-remote-highlight {
+    position: relative;
+    animation: rowPulse 0.6s ease-out;
+}
+
+.tv-remote-highlight::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -10px;
+    bottom: -10px;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(229, 9, 20, 0.15) 20%,
+            rgba(229, 9, 20, 0.15) 80%,
+            transparent 100%);
+    border-left: 3px solid var(--accent-primary);
+    border-radius: 8px;
+    pointer-events: none;
+    animation: glowPulse 1.5s ease-in-out;
+}
+
+@keyframes rowPulse {
+    0% {
+        transform: translateX(-10px);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes glowPulse {
+
+    0%,
+    100% {
+        opacity: 0.6;
+        box-shadow: 0 0 20px rgba(229, 9, 20, 0.3);
+    }
+
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 40px rgba(229, 9, 20, 0.6);
+    }
+}
+
+/* Focused movie card */
+.movie-card.tv-focused {
+    transform: scale(1.15);
+    z-index: 100;
+    box-shadow: 0 0 30px rgba(229, 9, 20, 0.6),
+        0 8px 40px rgba(0, 0, 0, 0.8);
+    border: 3px solid var(--accent-primary);
+    outline: none;
+}
+
+.movie-card.tv-focused .card-info {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.movie-card.tv-focused .card-hover-actions {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.movie-card.tv-focused .card-poster {
+    transform: scale(1.05);
+    filter: brightness(0.6);
+}
+
+/* TV Remote Indicator - Bottom left, subtle */
+.tv-remote-indicator {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    transform: translateY(20px);
+    background: rgba(20, 20, 20, 0.9);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: left;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    opacity: 0;
+    transition: all 0.25s ease;
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 3px solid var(--accent-primary);
+}
+
+.tv-remote-indicator.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Focused nav link for TV remote */
+.nav-link.tv-nav-focused {
+    color: var(--text-primary);
+    background: rgba(229, 9, 20, 0.2);
+    padding: 8px 12px;
+    border-radius: 6px;
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* Modal TV navigation focus states */
+.detail-modal .btn-play.tv-modal-focused,
+.detail-modal .btn-icon.tv-modal-focused {
+    outline: 3px solid var(--accent-primary);
+    outline-offset: 3px;
+    box-shadow: 0 0 20px rgba(229, 9, 20, 0.5);
+}
+
+.episode-card.tv-modal-focused {
+    border-color: var(--accent-primary) !important;
+    background: rgba(229, 9, 20, 0.2) !important;
+    box-shadow: 0 0 20px rgba(229, 9, 20, 0.4);
+}
+
+.season-select.tv-modal-focused {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* Navigation hint overlay */
+.tv-nav-hint {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    background: rgba(20, 20, 20, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px 24px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    z-index: 9000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+}
+
+.tv-nav-hint.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.tv-nav-hint .hint-keys {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.tv-nav-hint .hint-key {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+.tv-nav-hint .hint-key kbd {
+    background: var(--bg-hover);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ========================================
    RESPONSIVE
    ======================================== */
 @media (max-width: 1200px) {
@@ -1213,4 +1585,97 @@ button {
     .search-container.active .search-input {
         width: 180px;
     }
+}
+
+/* ========================================
+   TV NAVIGATION HINT OVERLAY
+   ======================================== */
+.tv-navigation-hint {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.tv-navigation-hint.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.tv-hint-content {
+    text-align: center;
+    max-width: 400px;
+    padding: 40px;
+    background: linear-gradient(145deg, rgba(30, 30, 30, 0.95), rgba(20, 20, 20, 0.98));
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 100px rgba(229, 9, 20, 0.2);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.tv-navigation-hint.show .tv-hint-content {
+    transform: scale(1);
+}
+
+.tv-hint-content h2 {
+    font-size: 1.8rem;
+    margin-bottom: 24px;
+    color: var(--text-primary);
+}
+
+.tv-hint-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.tv-hint-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tv-hint-key {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    background: rgba(229, 9, 20, 0.15);
+    padding: 8px 16px;
+    border-radius: 8px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.tv-hint-desc {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.tv-hint-footer {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Search toggle focus state */
+.search-toggle.tv-nav-focused {
+    background: rgba(229, 9, 20, 0.2);
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+    border-radius: 50%;
 }
