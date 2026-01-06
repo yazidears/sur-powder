@@ -142,17 +142,16 @@ button {
     letter-spacing: -0.03em;
 }
 
+/* Logo Icon Style Updated for SVG */
 .logo-icon {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    /* Removed background/box-shadow as we are using an SVG image now */
     border-radius: 8px;
-    font-size: 1rem;
-    color: white;
-    box-shadow: var(--shadow-glow);
+    object-fit: contain;
 }
 
 .nav {
