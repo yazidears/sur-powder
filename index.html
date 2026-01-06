@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Powder - Premium Streaming</title>
+    <meta name="description" content="Powder - Premium streaming experience with thousands of movies and TV shows">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <span class="logo-icon">▶</span>
+                <span>Powder</span>
+            </div>
+            <nav class="nav">
+                <a href="#" class="nav-link active" data-section="home">Home</a>
+                <a href="#" class="nav-link" data-section="movies">Movies</a>
+                <a href="#" class="nav-link" data-section="tvshows">TV Shows</a>
+                <a href="#" class="nav-link" data-section="mylist">My List</a>
+            </nav>
+        </div>
+        <div class="header-right">
+            <div class="search-container">
+                <button class="search-toggle" id="searchToggle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search movies, shows...">
+            </div>
+            <button class="profile-btn">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=powder" alt="Profile">
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Section -->
+        <section class="hero" id="hero">
+            <div class="hero-backdrop"></div>
+            <div class="hero-gradient"></div>
+            <div class="hero-content">
+                <div class="hero-info">
+                    <span class="hero-badge">Featured</span>
+                    <h1 class="hero-title" id="heroTitle">Loading...</h1>
+                    <div class="hero-meta" id="heroMeta">
+                        <span class="rating"><span class="star">★</span> --</span>
+                        <span class="year">----</span>
+                        <span class="runtime">-- min</span>
+                    </div>
+                    <p class="hero-description" id="heroDescription">Loading description...</p>
+                    <div class="hero-actions">
+                        <button class="btn-play" id="heroPlay">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Play
+                        </button>
+                        <button class="btn-secondary" id="heroInfo">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                            More Info
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Content Rows -->
+        <div class="content-rows" id="contentRows">
+            <!-- Continue Watching -->
+            <section class="content-row" id="continueWatchingRow" style="display: none;">
+                <h2 class="row-title">Continue Watching</h2>
+                <div class="row-wrapper">
+                    <button class="scroll-btn scroll-left" aria-label="Scroll left">‹</button>
+                    <div class="row-content" id="continueWatching"></div>
+                    <button class="scroll-btn scroll-right" aria-label="Scroll right">›</button>
+                </div>
+            </section>
+
+            <!-- Trending Now -->
+            <section class="content-row">
+                <h2 class="row-title">Trending Now</h2>
+                <div class="row-wrapper">
+                    <button class="scroll-btn scroll-left" aria-label="Scroll left">‹</button>
+                    <div class="row-content" id="trendingMovies"></div>
+                    <button class="scroll-btn scroll-right" aria-label="Scroll right">›</button>
+                </div>
+            </section>
+
+            <!-- Popular Movies -->
+            <section class="content-row">
+                <h2 class="row-title">Popular Movies</h2>
+                <div class="row-wrapper">
+                    <button class="scroll-btn scroll-left" aria-label="Scroll left">‹</button>
+                    <div class="row-content" id="popularMovies"></div>
+                    <button class="scroll-btn scroll-right" aria-label="Scroll right">›</button>
+                </div>
+            </section>
+
+            <!-- Top Rated -->
+            <section class="content-row">
+                <h2 class="row-title">Top Rated</h2>
+                <div class="row-wrapper">
+                    <button class="scroll-btn scroll-left" aria-label="Scroll left">‹</button>
+                    <div class="row-content" id="topRatedMovies"></div>
+                    <button class="scroll-btn scroll-right" aria-label="Scroll right">›</button>
+                </div>
+            </section>
+
+            <!-- Trending TV Shows -->
+            <section class="content-row">
+                <h2 class="row-title">Trending TV Shows</h2>
+                <div class="row-wrapper">
+                    <button class="scroll-btn scroll-left" aria-label="Scroll left">‹</button>
+                    <div class="row-content" id="trendingTV"></div>
+                    <button class="scroll-btn scroll-right" aria-label="Scroll right">›</button>
+                </div>
+            </section>
+
+            <!-- Popular TV -->
+            <section class="content-row">
+                <h2 class="row-title">Popular TV Shows</h2>
+                <div class="row-wrapper">
+                    <button class="scroll-btn scroll-left" aria-label="Scroll left">‹</button>
+                    <div class="row-content" id="popularTV"></div>
+                    <button class="scroll-btn scroll-right" aria-label="Scroll right">›</button>
+                </div>
+            </section>
+
+            <!-- My List -->
+            <section class="content-row" id="myListRow" style="display: none;">
+                <h2 class="row-title">My List</h2>
+                <div class="row-wrapper">
+                    <button class="scroll-btn scroll-left" aria-label="Scroll left">‹</button>
+                    <div class="row-content" id="myList"></div>
+                    <button class="scroll-btn scroll-right" aria-label="Scroll right">›</button>
+                </div>
+            </section>
+        </div>
+
+        <!-- Search Results -->
+        <div class="search-results" id="searchResults" style="display: none;">
+            <h2 class="section-title">Search Results</h2>
+            <div class="search-grid" id="searchGrid"></div>
+        </div>
+    </main>
+
+    <!-- Detail Modal -->
+    <div class="modal detail-modal" id="detailModal">
+        <div class="modal-overlay" id="detailOverlay"></div>
+        <div class="modal-content detail-content glass">
+            <button class="modal-close" id="detailClose">×</button>
+            <div class="detail-backdrop" id="detailBackdrop"></div>
+            <div class="detail-gradient"></div>
+            <div class="detail-body">
+                <h1 class="detail-title" id="detailTitle">Title</h1>
+                <div class="detail-meta" id="detailMeta">
+                    <span class="rating"><span class="star">★</span> 8.5</span>
+                    <span class="year">2024</span>
+                    <span class="runtime">120 min</span>
+                </div>
+                <div class="detail-actions">
+                    <button class="btn-play" id="detailPlay">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        Play
+                    </button>
+                    <button class="btn-icon" id="addToList" title="Add to My List">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+                <p class="detail-description" id="detailDescription">Description goes here...</p>
+
+                <!-- TV Show Season/Episode Selector -->
+                <div class="episode-selector" id="episodeSelector" style="display: none;">
+                    <div class="season-select-container">
+                        <label>Season</label>
+                        <select id="seasonSelect" class="season-select"></select>
+                    </div>
+                    <div class="episodes-grid" id="episodesGrid"></div>
+                </div>
+
+                <!-- Similar Titles -->
+                <div class="similar-section">
+                    <h3>More Like This</h3>
+                    <div class="similar-grid" id="similarGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player Modal -->
+    <div class="modal player-modal" id="playerModal">
+        <div class="player-header">
+            <button class="player-back" id="playerBack">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                Back to Browse
+            </button>
+            <h2 class="player-title" id="playerTitle">Now Playing</h2>
+        </div>
+        <div class="player-container">
+            <iframe id="playerFrame" allowfullscreen allow="autoplay; fullscreen"></iframe>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loader">
+            <div class="loader-ring"></div>
+            <span class="logo-icon loader-logo">▶</span>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
