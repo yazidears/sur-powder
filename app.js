@@ -1062,68 +1062,13 @@ function enterFocusModeOnFirstRow() {
 
 // Initialize TV remote navigation
 function initTVRemoteNavigation() {
-    // Show navigation hint on first visit
-    const hasSeenHint = localStorage.getItem('powder_tv_hint_seen');
-
-    if (!hasSeenHint) {
-        setTimeout(() => {
-            showTVNavigationHint();
-            localStorage.setItem('powder_tv_hint_seen', 'true');
-        }, 2000);
-    }
-
     // Show a brief indicator that remote navigation is available
     setTimeout(() => {
         showRemoteIndicator('📺 Use arrow keys to navigate');
     }, 1500);
 }
 
-// Show TV navigation hint overlay
-function showTVNavigationHint() {
-    const hint = document.createElement('div');
-    hint.className = 'tv-navigation-hint';
-    hint.innerHTML = `
-        <div class="tv-hint-content">
-            <h2>📺 Remote Navigation</h2>
-            <div class="tv-hint-grid">
-                <div class="tv-hint-item">
-                    <span class="tv-hint-key">↑↓←→</span>
-                    <span class="tv-hint-desc">Navigate</span>
-                </div>
-                <div class="tv-hint-item">
-                    <span class="tv-hint-key">Enter</span>
-                    <span class="tv-hint-desc">Select</span>
-                </div>
-                <div class="tv-hint-item">
-                    <span class="tv-hint-key">1-4</span>
-                    <span class="tv-hint-desc">Pages</span>
-                </div>
-                <div class="tv-hint-item">
-                    <span class="tv-hint-key">S</span>
-                    <span class="tv-hint-desc">Search</span>
-                </div>
-            </div>
-            <p class="tv-hint-footer">Click anywhere or press any key to continue</p>
-        </div>
-    `;
-    document.body.appendChild(hint);
 
-    // Animate in
-    setTimeout(() => hint.classList.add('show'), 10);
-
-    // Remove on any key press or click
-    const removeHint = () => {
-        hint.classList.remove('show');
-        setTimeout(() => hint.remove(), 300);
-        document.removeEventListener('keydown', removeHint);
-        hint.removeEventListener('click', removeHint);
-    };
-    document.addEventListener('keydown', removeHint);
-    hint.addEventListener('click', removeHint);
-
-    // Auto-remove after 8 seconds
-    setTimeout(removeHint, 8000);
-}
 
 // Nav mode functions
 function enterNavMode() {
