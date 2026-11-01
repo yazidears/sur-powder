@@ -10,6 +10,7 @@ const CONFIG = {
     VIDLINK_BASE_URL: 'https://vidlink.pro',
     VIDLY_BASE_URL: 'https://vidly.pro',
     EMBEDWAVE_BASE_URL: 'https://embedwave.cc/embed',
+    VIDRIFT_BASE_URL: 'https://embed.vidrift.net/embed',
     ACCENT_COLOR: 'e50914',
     TMDB_API_KEY: 'ee2d5fba997496419e3f483f1e17a6cc',
     STORAGE_KEYS: {
@@ -95,7 +96,7 @@ function loadFromStorage() {
     state.watchProgress = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEYS.WATCH_PROGRESS) || '{}');
     state.continueWatching = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEYS.CONTINUE_WATCHING) || '[]');
     const savedProvider = localStorage.getItem(CONFIG.STORAGE_KEYS.PLAYER_PROVIDER);
-    state.playerProvider = ['vidlink', 'vidly', 'embedwave'].includes(savedProvider) ? savedProvider : 'vidlink';
+    state.playerProvider = ['vidlink', 'vidly', 'embedwave', 'vidrift'].includes(savedProvider) ? savedProvider : 'vidlink';
     elements.playerProvider.value = state.playerProvider;
 }
 
@@ -510,16 +511,21 @@ function playContent(content, season = null, episode = null) {
     let playerUrl;
     const vidly = state.playerProvider === 'vidly';
     const embedwave = state.playerProvider === 'embedwave';
+    const vidrift = state.playerProvider === 'vidrift';
 
     if (type === 'tv' && season && episode) {
-        playerUrl = embedwave
+        playerUrl = vidrift
+            ? `${CONFIG.VIDRIFT_BASE_URL}/tv/${content.id}/${season}/${episode}`
+            : embedwave
             ? `${CONFIG.EMBEDWAVE_BASE_URL}/tv/${content.id}/${season}/${episode}?autoplay=1`
             : vidly
                 ? `${CONFIG.VIDLY_BASE_URL}/tv/${content.id}/${season}/${episode}?color=${CONFIG.ACCENT_COLOR}&autoplay=1&nextEpisode=1`
                 : `${CONFIG.VIDLINK_BASE_URL}/tv/${content.id}/${season}/${episode}?primaryColor=${CONFIG.ACCENT_COLOR}&iconColor=${CONFIG.ACCENT_COLOR}&autoplay=true&nextbutton=true`;
         elements.playerTitle.textContent = `${title} - S${season}:E${episode}`;
     } else {
-        playerUrl = embedwave
+        playerUrl = vidrift
+            ? `${CONFIG.VIDRIFT_BASE_URL}/movie/${content.id}`
+            : embedwave
             ? `${CONFIG.EMBEDWAVE_BASE_URL}/movie/${content.id}?autoplay=1`
             : vidly
                 ? `${CONFIG.VIDLY_BASE_URL}/movie/${content.id}?color=${CONFIG.ACCENT_COLOR}&autoplay=1`
@@ -552,9 +558,16 @@ function closeSettings() {
 
 function handlePlayerMessage(event) {
     if (event.source !== elements.playerFrame.contentWindow) return;
-    if (![CONFIG.VIDLINK_BASE_URL, CONFIG.VIDLY_BASE_URL, 'https://embedwave.cc'].includes(event.origin)) return;
+    if (![CONFIG.VIDLINK_BASE_URL, CONFIG.VIDLY_BASE_URL, 'https://embedwave.cc', 'https://embed.vidrift.net'].includes(event.origin)) return;
     try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        if (data.type === 'vidrift:progress' && data.tmdbId && data.duration) {
+            const progress = Math.min(100, Math.max(0, data.currentTime / data.duration * 100));
+            state.watchProgress[`${data.mediaType}-${data.tmdbId}`] = Math.round(progress);
+            saveToStorage();
+            updateContinueWatchingProgress(data.tmdbId, data.mediaType, progress, data.season, data.episode);
+            return;
+        }
         if (data.type === 'VIDLY_PLAYER_EVENT' && data.data) {
             const { tmdbId, mediaType, currentTime, duration, season, episode } = data.data;
             if (!tmdbId || !duration) return;
