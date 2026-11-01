@@ -41,7 +41,7 @@
                 </button>
                 <input type="text" id="searchInput" class="search-input" placeholder="Search movies, shows...">
             </div>
-            <button class="profile-btn">
+            <button class="profile-btn" id="settingsButton" aria-label="Settings" title="Settings">
                 <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=powder" alt="Profile">
             </button>
         </div>
@@ -208,6 +208,22 @@
                     <div class="similar-grid" id="similarGrid"></div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Player Modal -->
+    <div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="modal-overlay" id="settingsOverlay"></div>
+        <div class="modal-content glass settings-content">
+            <button class="modal-close" id="settingsClose" aria-label="Close settings">&times;</button>
+            <h2 id="settingsTitle">Settings</h2>
+            <label for="playerProvider">Video player</label>
+            <select id="playerProvider" class="season-select">
+                <option value="vidlink">VidLink</option>
+                <option value="vidly">Vidly</option>
+                <option value="embedwave">EmbedWave (No ads)</option>
+            </select>
+            <p>Your choice is saved on this device.</p>
         </div>
     </div>
 

@@ -934,6 +934,16 @@ button {
     transform: rotate(90deg);
 }
 
+.settings-content {
+    width: 400px;
+    padding: 32px;
+}
+
+.settings-content h2 { margin-bottom: 24px; }
+.settings-content label { display: block; margin-bottom: 10px; font-weight: 600; }
+.settings-content select { width: 100%; }
+.settings-content p { margin-top: 16px; color: var(--text-secondary); font-size: 0.85rem; }
+
 /* API Key Modal */
 .api-key-modal .modal-content {
     background: var(--bg-secondary);

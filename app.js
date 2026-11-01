@@ -8,12 +8,15 @@ const CONFIG = {
     TMDB_BASE_URL: 'https://api.themoviedb.org/3',
     TMDB_IMAGE_BASE: 'https://image.tmdb.org/t/p',
     VIDLINK_BASE_URL: 'https://vidlink.pro',
+    VIDLY_BASE_URL: 'https://vidly.pro',
+    EMBEDWAVE_BASE_URL: 'https://embedwave.cc/embed',
     ACCENT_COLOR: 'e50914',
     TMDB_API_KEY: 'ee2d5fba997496419e3f483f1e17a6cc',
     STORAGE_KEYS: {
         MY_LIST: 'powder_my_list',
         WATCH_PROGRESS: 'powder_progress',
-        CONTINUE_WATCHING: 'powder_continue'
+        CONTINUE_WATCHING: 'powder_continue',
+        PLAYER_PROVIDER: 'powder_player_provider'
     }
 };
 
@@ -24,7 +27,8 @@ const state = {
     watchProgress: {},
     continueWatching: [],
     searchTimeout: null,
-    heroContent: null
+    heroContent: null,
+    playerProvider: 'vidlink'
 };
 
 // DOM Elements
@@ -61,6 +65,11 @@ const elements = {
     playerBack: document.getElementById('playerBack'),
     playerTitle: document.getElementById('playerTitle'),
     playerFrame: document.getElementById('playerFrame'),
+    settingsButton: document.getElementById('settingsButton'),
+    settingsModal: document.getElementById('settingsModal'),
+    settingsOverlay: document.getElementById('settingsOverlay'),
+    settingsClose: document.getElementById('settingsClose'),
+    playerProvider: document.getElementById('playerProvider'),
     navLinks: document.querySelectorAll('.nav-link'),
     continueWatchingRow: document.getElementById('continueWatchingRow'),
     myListRow: document.getElementById('myListRow')
@@ -85,6 +94,9 @@ function loadFromStorage() {
     state.myList = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEYS.MY_LIST) || '[]');
     state.watchProgress = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEYS.WATCH_PROGRESS) || '{}');
     state.continueWatching = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEYS.CONTINUE_WATCHING) || '[]');
+    const savedProvider = localStorage.getItem(CONFIG.STORAGE_KEYS.PLAYER_PROVIDER);
+    state.playerProvider = ['vidlink', 'vidly', 'embedwave'].includes(savedProvider) ? savedProvider : 'vidlink';
+    elements.playerProvider.value = state.playerProvider;
 }
 
 function saveToStorage() {
@@ -130,6 +142,13 @@ function setupEventListeners() {
 
     // Player modal
     elements.playerBack.addEventListener('click', closePlayerModal);
+    elements.settingsButton.addEventListener('click', () => elements.settingsModal.classList.add('active'));
+    elements.settingsOverlay.addEventListener('click', closeSettings);
+    elements.settingsClose.addEventListener('click', closeSettings);
+    elements.playerProvider.addEventListener('change', () => {
+        state.playerProvider = elements.playerProvider.value;
+        localStorage.setItem(CONFIG.STORAGE_KEYS.PLAYER_PROVIDER, state.playerProvider);
+    });
 
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyboard);
@@ -489,12 +508,22 @@ function playContent(content, season = null, episode = null) {
     const type = content.media_type || 'movie';
     const title = content.title || content.name;
     let playerUrl;
+    const vidly = state.playerProvider === 'vidly';
+    const embedwave = state.playerProvider === 'embedwave';
 
     if (type === 'tv' && season && episode) {
-        playerUrl = `${CONFIG.VIDLINK_BASE_URL}/tv/${content.id}/${season}/${episode}?primaryColor=${CONFIG.ACCENT_COLOR}&iconColor=${CONFIG.ACCENT_COLOR}&autoplay=true&nextbutton=true`;
+        playerUrl = embedwave
+            ? `${CONFIG.EMBEDWAVE_BASE_URL}/tv/${content.id}/${season}/${episode}?autoplay=1`
+            : vidly
+                ? `${CONFIG.VIDLY_BASE_URL}/tv/${content.id}/${season}/${episode}?color=${CONFIG.ACCENT_COLOR}&autoplay=1&nextEpisode=1`
+                : `${CONFIG.VIDLINK_BASE_URL}/tv/${content.id}/${season}/${episode}?primaryColor=${CONFIG.ACCENT_COLOR}&iconColor=${CONFIG.ACCENT_COLOR}&autoplay=true&nextbutton=true`;
         elements.playerTitle.textContent = `${title} - S${season}:E${episode}`;
     } else {
-        playerUrl = `${CONFIG.VIDLINK_BASE_URL}/movie/${content.id}?primaryColor=${CONFIG.ACCENT_COLOR}&iconColor=${CONFIG.ACCENT_COLOR}&autoplay=true`;
+        playerUrl = embedwave
+            ? `${CONFIG.EMBEDWAVE_BASE_URL}/movie/${content.id}?autoplay=1`
+            : vidly
+                ? `${CONFIG.VIDLY_BASE_URL}/movie/${content.id}?color=${CONFIG.ACCENT_COLOR}&autoplay=1`
+                : `${CONFIG.VIDLINK_BASE_URL}/movie/${content.id}?primaryColor=${CONFIG.ACCENT_COLOR}&iconColor=${CONFIG.ACCENT_COLOR}&autoplay=true`;
         elements.playerTitle.textContent = title;
     }
 
@@ -516,9 +545,25 @@ function closePlayerModal() {
     elements.playerFrame.src = '';
 }
 
+function closeSettings() {
+    elements.settingsModal.classList.remove('active');
+    elements.settingsButton.focus();
+}
+
 function handlePlayerMessage(event) {
+    if (event.source !== elements.playerFrame.contentWindow) return;
+    if (![CONFIG.VIDLINK_BASE_URL, CONFIG.VIDLY_BASE_URL, 'https://embedwave.cc'].includes(event.origin)) return;
     try {
-        const data = JSON.parse(event.data);
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        if (data.type === 'VIDLY_PLAYER_EVENT' && data.data) {
+            const { tmdbId, mediaType, currentTime, duration, season, episode } = data.data;
+            if (!tmdbId || !duration) return;
+            const progress = Math.min(100, Math.max(0, currentTime / duration * 100));
+            state.watchProgress[`${mediaType}-${tmdbId}`] = Math.round(progress);
+            saveToStorage();
+            updateContinueWatchingProgress(tmdbId, mediaType, progress, season, episode);
+            return;
+        }
         if (data.type === 'PLAYER_EVENT' && data.data) {
             const { id, mediaType, progress, season, episode } = data.data;
 
@@ -868,6 +913,10 @@ const tvRemoteState = {
 };
 
 function handleKeyboard(e) {
+    if (elements.settingsModal.classList.contains('active')) {
+        if (e.key === 'Escape') closeSettings();
+        return;
+    }
     // Don't handle if typing in search
     if (document.activeElement === elements.searchInput) {
         if (e.key === 'Escape') {
