@@ -1,13 +1,13 @@
 /* ========================================
    POWDER - Application Logic
-   TMDB API + Vidking Player Integration
+   TMDB API + VidLink Player Integration
    ======================================== */
 
 // Configuration
 const CONFIG = {
     TMDB_BASE_URL: 'https://api.themoviedb.org/3',
     TMDB_IMAGE_BASE: 'https://image.tmdb.org/t/p',
-    VIDKING_BASE_URL: 'https://www.vidking.net/embed',
+    VIDLINK_BASE_URL: 'https://vidlink.pro',
     ACCENT_COLOR: 'e50914',
     TMDB_API_KEY: 'ee2d5fba997496419e3f483f1e17a6cc',
     STORAGE_KEYS: {
@@ -491,10 +491,10 @@ function playContent(content, season = null, episode = null) {
     let playerUrl;
 
     if (type === 'tv' && season && episode) {
-        playerUrl = `${CONFIG.VIDKING_BASE_URL}/tv/${content.id}/${season}/${episode}?color=${CONFIG.ACCENT_COLOR}&autoPlay=true&nextEpisode=true&episodeSelector=true`;
+        playerUrl = `${CONFIG.VIDLINK_BASE_URL}/tv/${content.id}/${season}/${episode}?primaryColor=${CONFIG.ACCENT_COLOR}&iconColor=${CONFIG.ACCENT_COLOR}&autoplay=true&nextbutton=true`;
         elements.playerTitle.textContent = `${title} - S${season}:E${episode}`;
     } else {
-        playerUrl = `${CONFIG.VIDKING_BASE_URL}/movie/${content.id}?color=${CONFIG.ACCENT_COLOR}&autoPlay=true`;
+        playerUrl = `${CONFIG.VIDLINK_BASE_URL}/movie/${content.id}?primaryColor=${CONFIG.ACCENT_COLOR}&iconColor=${CONFIG.ACCENT_COLOR}&autoplay=true`;
         elements.playerTitle.textContent = title;
     }
 
